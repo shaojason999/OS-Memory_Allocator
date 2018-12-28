@@ -1,6 +1,5 @@
 #include <stdlib.h>
 #include <stdio.h>
-#include "hw_malloc.h"
 
 
 void *hw_malloc(size_t bytes)
