@@ -13,7 +13,7 @@ $(GIT_HOOKS):
 	@echo
 
 $(EXEC): $(OBJS)
-	$(CC) $(CFLAGS) -o $@ $(OBJS)
+	$(CC) $(CFLAGS) -o $@ $(OBJS) -lm
 
 hw4_mm_test.o: %.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@
