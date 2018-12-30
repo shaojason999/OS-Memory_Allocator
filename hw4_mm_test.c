@@ -1,9 +1,9 @@
 //#include "lib/hw_malloc.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 #include <math.h>
-
 
 void *start_brk;
 struct BIN {
@@ -47,17 +47,19 @@ int main(int argc, char *argv[])
 {
     start_brk=sbrk(64*1024);
     init();
-    printf("start_brk: %p\n",start_brk);
+//    printf("start_brk: %p\n",start_brk);
     int size,result;
-    char input[10],bin_or_mmap[20],free[30];
+    char input[10],bin_or_mmap[20];
     void *address;
     int bin_num;
     int i;
     while(1) {
-        scanf("%s",input);
+        if(scanf("%s",input)!=1)
+            printf("failed on scanf\n");
         switch(input[0]) {
         case 'a':
-            scanf("%d",&size);
+            if(scanf("%d",&size)!=1)
+                printf("failed on scanf\n");
             address=hw_malloc(size);
             if(address!=NULL)
                 printf("%.12p\n",(void*)((long int)address-(long int)start_brk));
@@ -65,10 +67,10 @@ int main(int argc, char *argv[])
                 printf("not enough space\n");
             break;
         case 'f':
-            scanf("%p",&address);
+            if(scanf("%p",&address)!=1)
+                printf("failed on scanf\n");
             address=(void*)((long int)address+(long int)start_brk-24);
             if((*(int*)(address+20)&1)==0) {	//not mmap
-                printf("123\n");
                 result=hw_free(address);
                 if(result==1)
                     printf("success\n");
@@ -77,7 +79,8 @@ int main(int argc, char *argv[])
             }
             break;
         case 'p':
-            scanf("%s",bin_or_mmap);
+            if(scanf("%s",bin_or_mmap)!=1)
+                printf("1 failed on scanf\n");
             if(bin_or_mmap[0]=='b') {
                 if(bin_or_mmap[5]=='0')	//bin[10]
                     bin_num=10;
@@ -85,7 +88,10 @@ int main(int argc, char *argv[])
                     bin_num=bin_or_mmap[4]-'0';
                 address=(void*)*(long int*)((void*)bin[bin_num]+8);
                 for(i=0; i<bin[bin_num]->length; ++i) {
-                    printf("%p--------%d\n",(void*)(address-start_brk),(int)pow(2,bin_num+5));
+                    if((void*)(address-start_brk)==0)
+                        printf("0x000000000000--------%d\n",(int)pow(2,bin_num+5));
+                    else
+                        printf("%.12p--------%d\n",(void*)(address-start_brk),(int)pow(2,bin_num+5));
                     address=(void*)(*(long int*)(address+8));
                 }
             }

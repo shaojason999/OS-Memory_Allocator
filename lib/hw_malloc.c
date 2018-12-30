@@ -57,13 +57,12 @@ void add_bin_chunk(int i, void* p)	//add to the rear of the bin
     *(int*)(p+20)=((int)pow(2,i+5)<<1)+0;	//curren size, not mmap
     /*update*/
     ++(bin[i]->length);
-    printf("length: %d\n",bin[i]->length);
     update_min(i);
 }
 void *select_bin_chunk(int power)
 {
 //    show(10);
-    printf("\n");
+//    printf("\n");
     int i;
     void *allocated_chunk,*split_chunk;
     allocated_chunk=NULL;
@@ -112,11 +111,15 @@ int hw_free(void *mem)
     int bin_num;
     int prev_test=1,next_test=1;
     int continue_merge=1;
-    if(*(int*)(mem+16)&1) {	//mem is equal to curr_chunk
+    if((*(int*)(mem+20)>>1)==32*1024)	//don't merge 2^15
+        return 0;
+    if(*(int*)(mem+16)&1) {	//mem is the same as curr_chunk
+        add_bin_chunk(log(*(int*)(mem+20)>>1)/log(2)-5,mem);	//add mem to bin in the beginning
         while(continue_merge) {
-            printf("234\n");
             prev_size=*(int*)(mem+16)>>1;
             curr_size=*(int*)(mem+20)>>1;
+            if(curr_size==32*1024)	//don't merge 2^15
+                break;
             if(prev_size!=0)
                 prev_chunk=(void*)(mem-prev_size);
             else
@@ -126,23 +129,22 @@ int hw_free(void *mem)
             else
                 next_test=0;
             bin_num=log(curr_size)/log(2)-5;
-//			printf("%d %d %p %p %d\n",prev_size,curr_size,prev_chunk,next_chunk,bin_num);
             /*merge with prev if prev is free and prev has the same size as curr_size(size of mem)*/
             if(prev_test && (*(int*)(prev_chunk+16)&1)==0 && (*(int*)(prev_chunk+20))>>1==curr_size) {
-                printf("1 123\n");
                 delete_bin_chunk(bin_num,prev_chunk);
+                delete_bin_chunk(bin_num,mem);
                 add_bin_chunk(bin_num+1,prev_chunk);
                 /*update the prev size of next_chunk*/
                 *(int*)(next_chunk+16)&=1;
                 *(int*)(next_chunk+16)|=curr_size<<2;	//equal to (prev+cur)<<1
                 /*continute merge and the new mem address is prev_chunk*/
-                printf("123\n");
                 continue_merge=1;
                 mem=prev_chunk;
             }
             /*merge with next if next is free and next has the same size as curr_size(size of mem)*/
             else if(next_test && (*(int*)(next_chunk+16)&1)==0 && (*(int*)(next_chunk+20))>>1==curr_size) {
                 delete_bin_chunk(bin_num,next_chunk);
+                delete_bin_chunk(bin_num,mem);
                 add_bin_chunk(bin_num+1,mem);
                 /*update the prev size of next_next_chunk*/
                 *(int*)(next_chunk+curr_size+16)&=1;	//curr_size=next_size, so next_chunk+curr_size=next_next_chunk
@@ -150,13 +152,7 @@ int hw_free(void *mem)
                 /*continute merge and the new mem address is curr_chunk(not changed)*/
                 continue_merge=1;
                 mem=mem;
-            }
-            /*don't merge*/
-            else if(1) {
-                add_bin_chunk(bin_num,mem);
-                /*stop merge*/
-                continue_merge=0;
-            } else
+            } else	//can't merge
                 continue_merge=0;
         }
         return 1;
@@ -166,5 +162,5 @@ int hw_free(void *mem)
 
 void *get_start_sbrk(void)
 {
-    return NULL;
+    return start_brk;
 }
