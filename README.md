@@ -9,3 +9,7 @@
 6. mmap flag: int(1-bit)
 * 3,4合併為一個int，5,6合併為一個int(前31個bit是size部分，最後一個bit是flag)
 * 所以int=size部分*2(<<1)+flag bit
+
+
+### Note
+1. 今天有一個地址A，今天若A=A+8，則結果A=A+sizeof(A)\*8，不是單純的+8，如果想要單純的+8則寫成:A=(void*)A+8
