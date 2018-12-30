@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <unistd.h>
 #include <math.h>
 
 struct BIN {
@@ -52,10 +53,8 @@ void add_bin_chunk(int i, void* p)	//add to the rear of the bin
     *(long int*)((*(long int*)bin[i])+8)=(long int)p;
     *(long int*)bin[i]=(long int)p;
     /*info*/
-//    *(int*)(p+16)&=0xfffffffe;	//free
-//    *(int*)(p+20)=(int)pow(2,i+5)<<1;	//curren size
-    *(int*)(p+16)=0;	//free
-    *(int*)(p+20)=0;	//not mmap
+    *(int*)(p+16)&=0xfffffffe;	//not change prev size, set free
+    *(int*)(p+20)=((int)pow(2,i+5)<<1)+0;	//curren size, not mmap
     /*update*/
     ++(bin[i]->length);
     update_min(i);
@@ -76,28 +75,30 @@ void *select_bin_chunk(int power)
         }
     }
     if(allocated_chunk!=NULL) {
-        --i;
-        /*split if neede*/
+        /*split if needed*/
         split_chunk=allocated_chunk+(int)pow(2,i+5);
-        while(i>=power-5) {
-            printf("bin[%d] %p\n",i,(void*)(split_chunk-start_brk));
-            add_bin_chunk(i,split_chunk);
-            --i;
+        for(--i; i>=power-5; --i) {
             split_chunk=split_chunk-(int)pow(2,i+5);
+            printf("bin[%d] %p\n",i,(void*)(split_chunk-start_brk));
+            add_bin_chunk(i,split_chunk);	//add to bin, set cur size, set free
+            if((void*)((long int)split_chunk+(long int)pow(2,i+5))<sbrk(0)) {	//avoid heap overflow
+                *(int*)((long int)split_chunk+(long int)pow(2,i+5)+16)&=1;	//clear prev size of next chunk, not change the allocate flag
+                *(int*)((long int)split_chunk+(long int)pow(2,i+5)+16)|=((int)pow(2,i+5)<<1)+0;	//set prev size of next chunk, not change the allocate flag
+            }
         }
-        *(int*)(allocated_chunk+16)=1;	//allocated
-        *(int*)(allocated_chunk+20)=0;	//not mmap
+        *(int*)(split_chunk+16)&=1;	//clear the prev size, not change the allocate flag
+        *(int*)(split_chunk+16)|=((int)pow(2,power)<<1)+0;	//prev size is the size of allocated chunk, not change the allocate flag
         /*allocated*/
+        *(int*)(allocated_chunk+16)|=1;	//not change prev size, set allocate flag
+        *(int*)(allocated_chunk+20)=((int)pow(2,power)<<1)+0;	//curr size, not mmap
     }
     return allocated_chunk;
-
 }
 void *hw_malloc(size_t bytes)
 {
     void *allocated_chunk;
     int power=(int)ceil(log(bytes+24)/log(2));
     allocated_chunk=select_bin_chunk(power);
-//	printf("%d\n",power);
     return allocated_chunk;
 }
 
