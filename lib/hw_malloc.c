@@ -27,7 +27,7 @@ void update_min(int i)
 {
     int j;
     void *temp=bin[i];
-    bin[i]->min=0xffffffffffffffff;
+    bin[i]->min=(void*)0xffffffffffffffff;
     for(j=0; j<bin[i]->length; ++j) {
         temp=(void*)(*(long int*)(temp+8));
         if(temp<bin[i]->min)
@@ -47,50 +47,58 @@ void delete_bin_chunk(int i, void* min)	//delete the min one
 void add_bin_chunk(int i, void* p)	//add to the rear of the bin
 {
     /*pointer*/
-    *(long int*)(p+8)=bin[i];
+    *(long int*)(p+8)=(long int)bin[i];
     *(long int*)p=*(long int*)bin[i];
-    *(long int*)((*(long int*)bin[i])+8)=p;
-    *(long int*)bin[i]=p;
+    *(long int*)((*(long int*)bin[i])+8)=(long int)p;
+    *(long int*)bin[i]=(long int)p;
     /*info*/
-    *(int*)(p+16)&=0xfffffffe;	//free
-    *(int*)(p+20)=(int)pow(2,i+5)<<1;	//curren size
+//    *(int*)(p+16)&=0xfffffffe;	//free
+//    *(int*)(p+20)=(int)pow(2,i+5)<<1;	//curren size
+    *(int*)(p+16)=0;	//free
+    *(int*)(p+20)=0;	//not mmap
     /*update*/
     ++(bin[i]->length);
     update_min(i);
 }
-void select_bin_chunk(int power)
+void *select_bin_chunk(int power)
 {
-    show(10);
+//    show(10);
     printf("\n");
     int i;
-    void *chunk;
+    void *allocated_chunk,*split_chunk;
+    allocated_chunk=NULL;
     /*select the best fit chunk*/
     for(i=power-5; i<11; ++i) {	//bin[0] is 2^5
         if(bin[i]->length>0) {	//the first one is the best one
-            chunk=bin[i]->min;
+            allocated_chunk=bin[i]->min;
             delete_bin_chunk(i,bin[i]->min);	//remove from the bin[i]
             break;
         }
     }
-    /*split*/
-    for(i=i-1; i>=power-5; --i) {
-        add_bin_chunk(i,chunk);
-        chunk=chunk+(int)pow(2,i+5);
-        *(int*)(chunk+16)=(int)pow(2,i+5)<<1;	//prev size, curr is free
+    if(allocated_chunk!=NULL) {
+        --i;
+        /*split if neede*/
+        split_chunk=allocated_chunk+(int)pow(2,i+5);
+        while(i>=power-5) {
+            printf("bin[%d] %p\n",i,(void*)(split_chunk-start_brk));
+            add_bin_chunk(i,split_chunk);
+            --i;
+            split_chunk=split_chunk-(int)pow(2,i+5);
+        }
+        *(int*)(allocated_chunk+16)=1;	//allocated
+        *(int*)(allocated_chunk+20)=0;	//not mmap
+        /*allocated*/
     }
-    /*allocated*/
-    *(int*)(chunk+16)|=0x00000001;	//allocated
-    *(int*)(chunk+20)=(int)pow(2,i+5+1)<<1;
-//	show(10);
-    printf("%p %p %p\n",start_brk,chunk,chunk-start_brk);
+    return allocated_chunk;
 
 }
 void *hw_malloc(size_t bytes)
 {
+    void *allocated_chunk;
     int power=(int)ceil(log(bytes+24)/log(2));
-    select_bin_chunk(power);
+    allocated_chunk=select_bin_chunk(power);
 //	printf("%d\n",power);
-    return NULL;
+    return allocated_chunk;
 }
 
 int hw_free(void *mem)
