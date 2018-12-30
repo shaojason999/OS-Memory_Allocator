@@ -10,7 +10,7 @@
 6. mmap flag: int(1-bit)
 * chunk header結構為: 1.2.(3.4.)(5.6.)，共24-byte
 * 3,4合併為一個int，5,6合併為一個int(前31個bit是size部分，最後一個bit是flag)
-* 所以int=size部分*2(<<1)+flag bit
+* 所以int=(size<<1)+flag bit
 
 
 ### Note
