@@ -2,6 +2,7 @@
 
 ### chunk header結構
 1. prev chunk: long int(8-byte)
+* 指的是所有切割出來的chunk(allocated, free)中，相鄰自己，地址較低的chunk的size(有可能是allocated, free)
 2. next chunk: long int(8-byte)
 3. prev chunk size: int(31-bit)
 4. allocated flag: int(1-bit)
