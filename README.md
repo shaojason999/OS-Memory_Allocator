@@ -2,12 +2,13 @@
 
 ### chunk header結構
 1. prev chunk: long int(8-byte)
-   * 指的是所有切割出來的chunk(allocated, free)中，相鄰自己，地址較低的chunk的size(有可能是allocated, free)
 2. next chunk: long int(8-byte)
 3. prev chunk size: int(31-bit)
+   * 指的是所有切割出來的chunk(allocated, free)中，相鄰自己，地址較低的chunk的size(有可能是allocated, free)
 4. allocated flag: int(1-bit)
 5. current chunk size: int(31-bit)
 6. mmap flag: int(1-bit)
+* chunk header結構為: 1.2.(3.4.)(5.6.)，共24-byte
 * 3,4合併為一個int，5,6合併為一個int(前31個bit是size部分，最後一個bit是flag)
 * 所以int=size部分*2(<<1)+flag bit
 
