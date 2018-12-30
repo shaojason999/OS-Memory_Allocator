@@ -36,23 +36,11 @@ void init()
     bin[10]->prev=start_brk+32*1024;
     bin[10]->min=start_brk;
     /*info*/
-//    *(int*)(start_brk+16)=(32*1024<<1)+0;	//31 bits for prev size(<<1) + 1 bit for allocated flag(0 for free)
-//    *(int*)(start_brk+20)=(32*1024<<1)+0;	//31 bits for curr size(<<1) + 1 bit for mmap flag(0 for not mmap)
-//    *(int*)(start_brk+32*1024+16)=(32*1024<<1)+0;	//31 bits for prev size(<<1) + 1 bit for allocated flag(0 for free)
-//    *(int*)(start_brk+32*1024+20)=(32*1024<<1)+0;	//31 bits for curr size(<<1) + 1 bit for mmap flag(0 for not mmap)
-    *(int*)(start_brk+16)=0;	//31 bits for prev size(<<1) + 1 bit for allocated flag(0 for free)
-    *(int*)(start_brk+20)=0;	//31 bits for curr size(<<1) + 1 bit for mmap flag(0 for not mmap)
-    *(int*)(start_brk+32*1024+16)=0;	//31 bits for prev size(<<1) + 1 bit for allocated flag(0 for free)
-    *(int*)(start_brk+32*1024+20)=0;	//31 bits for curr size(<<1) + 1 bit for mmap flag(0 for not mmap)
+    *(int*)(start_brk+16)=0;	//prev size=0, clear allocate flag
+    *(int*)(start_brk+20)=(32*1024<<1)+0;	//31 bits for curr size(<<1) + 1 bit for mmap flag(0 for not mmap)
+    *(int*)(start_brk+32*1024+16)=(32*1024<<1)+0;	//31 bits for prev size(<<1) + 1 bit for allocated flag(0 for free)
+    *(int*)(start_brk+32*1024+20)=(32*1024<<1)+0;	//31 bits for curr size(<<1) + 1 bit for mmap flag(0 for not mmap)
     bin[10]->length=2;
-
-
-//    printf("%p %p 0x%lx\n",start_brk,start_brk+32*1024,*(long int*)start_brk);
-//    printf("%p\n",sbrk(0));
-//	printf("%p %p\n",start_brk,*(long int*)start_brk);
-//    printf("0x%lx %p 0x%lx\n",*(long int*)((void*)(*(long int*)(bin[10]->min))),(void*)(*(long int*)(bin[10]->min)),*(long int*)(bin[10]->min));
-//    printf("0x%lx %p 0x%lx\n",*(long int*)((*(long int*)(bin[10]->min))),(void*)(*(long int*)(bin[10]->min)),*(long int*)(bin[10]->min));
-
 }
 
 int main(int argc, char *argv[])
@@ -61,7 +49,7 @@ int main(int argc, char *argv[])
     init();
     printf("start_brk: %p\n",start_brk);
     int size,result;
-    char input[10],bin_or_mmap[20];
+    char input[10],bin_or_mmap[20],free[30];
     void *address;
     int bin_num;
     int i;
@@ -71,15 +59,22 @@ int main(int argc, char *argv[])
         case 'a':
             scanf("%d",&size);
             address=hw_malloc(size);
+            if(address!=NULL)
+                printf("%.12p\n",(void*)((long int)address-(long int)start_brk));
+            else
+                printf("not enough space\n");
             break;
         case 'f':
             scanf("%p",&address);
-            //printf("%p\n",address);
-            result=hw_free(address);
-            if(result==1)
-                printf("success\n");
-            else
-                printf("fail\n");
+            address=(void*)((long int)address+(long int)start_brk-24);
+            if((*(int*)(address+20)&1)==0) {	//not mmap
+                printf("123\n");
+                result=hw_free(address);
+                if(result==1)
+                    printf("success\n");
+                else
+                    printf("fail\n");
+            }
             break;
         case 'p':
             scanf("%s",bin_or_mmap);
