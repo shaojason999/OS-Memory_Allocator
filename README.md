@@ -23,6 +23,8 @@
       * heap: relative data address
 2. free ADDRESS
     * ADDRESS is the data address
+      * mmap: actual data address
+      * heap: relative data address
     * you can input any address, if the ADDRESS is not allocated or illegal, I'll tell you
 3. print BIN[i]
     * i can be 0 to 10
