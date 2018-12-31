@@ -1,0 +1,11 @@
+alloc 16
+alloc 16
+alloc 16
+alloc 16
+free 0x000000000018
+free 0x000000000098
+print bin[1]
+alloc 33768
+alloc 37864
+alloc 35816
+print mmap_alloc_list

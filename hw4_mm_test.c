@@ -82,15 +82,13 @@ int main(int argc, char *argv[])
     void *address;
     int bin_num,mmap;
     int i;
-    while(1) {
-        if(scanf("%s",input)!=1)
-            printf("failed on scanf\n");
+    while(scanf("%s",input)==1) {
         switch(input[0]) {
         default:
             printf("wrong input\n");
         case 'a':
             if(scanf("%d",&size)!=1)
-                printf("failed on scanf\n");
+                printf("234 failed on scanf\n");
             address=hw_malloc(size);
             if(address!=NULL) {
                 if(size<=32*1024)
@@ -106,14 +104,15 @@ int main(int argc, char *argv[])
             mmap=check_in_mmap_list(address-24);	//to see it is a mmap(actual address) or a heap(relative address)
             if(mmap)
                 address=(void*)((long int)address-24);		//transfer from data address to header address
-            else {	//it may be a heap addreess or a wrong addreess
+            else {	//it may be within a heap or a wrong addreess
                 if(address>=0 && address<=(void*)(sbrk(0)-start_brk))
                     address=(void*)((long int)address+(long int)start_brk-24);		//transfer from relative data part to actual header address
                 else {
-                    printf("not a usuable address, try again\n");
+                    printf("failed\n");
                     continue;
                 }
             }
+            /*if it is within a heap(success or fail) or an allocated mmap(success)*/
             result=hw_free(address);
             if(result==1)
                 printf("success\n");
