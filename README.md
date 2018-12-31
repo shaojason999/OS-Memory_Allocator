@@ -35,3 +35,6 @@
 ### Note
 1. 今天有一個地址A，今天若A=A+8，則結果A=A+sizeof(A)\*8，不是單純的+8，如果想要單純的+8則寫成:A=(void*)A+8
 2. a<<1+1，等同於a<<(1+1)，括號要記得: (a<<1)+1
+
+## Reference
+1. [Dynamic Memory Management](http://www.cs.princeton.edu/courses/archive/spr16/cos217/lectures/19_DynamicMemory.pdf?fbclid=IwAR1968_QKFF7KO2se5LdFEtWkIwVa48NI7CV5GOobmjh4FHZYO7UXgGgzSM)
