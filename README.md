@@ -12,6 +12,23 @@
 * 3,4合併為一個int，5,6合併為一個int(前31個bit是size部分，最後一個bit是flag)
 * 所以int=(size<<1)+flag bit
 
+## 程式說明
+指令:  
+1. alloc N
+  * N is the bytes
+  * if N>32\*1024-24, use mmap
+  * else if use heap
+  * Return value: 
+    * mmap: actual data address
+    * heap: relative data address
+2. free ADDRESS
+  * ADDRESS is the data address
+  * you can input any address, if the ADDRESS is not allocated or illegal, I'll tell you
+3. print BIN[i]
+  * i can be 0 to 10
+  * return value is an actual data address
+4. print mmap_alloc_list
+  * return value is an actual data address
 
 ### Note
 1. 今天有一個地址A，今天若A=A+8，則結果A=A+sizeof(A)\*8，不是單純的+8，如果想要單純的+8則寫成:A=(void*)A+8
