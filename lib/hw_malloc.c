@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <sys/mman.h>
 #include <unistd.h>
 #include <math.h>
 
@@ -9,9 +10,15 @@ struct BIN {
     void *min;
     int length;
 };
-
+struct MMAP {   //seen as a chunk header
+    void *prev;
+    void *nxt;
+    int prev_size_and_alloc_flag;   //prev size is not used int mmap
+    int curr_size_and_mmap_flag;
+};
 extern struct BIN *bin[11];
-extern void* start_brk;
+extern struct MMAP *mmap_list;
+extern void *start_brk;
 
 /*test use*/
 void show(int i)
@@ -96,14 +103,55 @@ void *select_bin_chunk(int power)
     }
     return allocated_chunk;
 }
+void add_mmap_alloc_list(int bytes,void *allocated_chunk)
+{
+    void *temp=mmap_list->nxt;
+    while(bytes>(*(int*)(temp+20)>>1)) {	//to avoid infinite loop, set the size of mmap_list to 2^30-1 in init()
+        temp=(void*)*(long int*)(temp+8);
+        printf("%d\n",*(int*)(temp+20)>>1);
+    }
+    /*chunk pointer*/
+    *(long int*)allocated_chunk=*(long int*)temp;
+    *(long int*)(allocated_chunk+8)=(long int)temp;
+    *(long int*)((*(long int*)temp)+8)=(long int)allocated_chunk;
+    *(long int*)temp=(long int)allocated_chunk;
+    /*chunk info*/
+    *(int*)(allocated_chunk+16)=(*(int*)((*(long int*)allocated_chunk)+20)>>1)+1;	//prev size, set allocate flag
+    *(int*)(allocated_chunk+20)=(bytes<<1)+1;	//curr size, set mmap flag
+
+    printf("%d %d\n",bytes,*(int*)(temp+20)>>1);
+
+//	printf("alloc: %p prev: %p next: %p temp: %p\n",allocated_chunk,(void*)*(long int*)(allocated_chunk),(void*)*(long int*)(allocated_chunk+8),temp);
+}
+void show_mmap_list()
+{
+    void *temp=mmap_list->nxt;
+//	printf("mmap: %p temp: %p\n",mmap_list,temp);
+    printf("show mmap_list:\n");
+    while(temp!=mmap_list) {
+        printf("%p\n",temp);
+        temp=(void*)(*(long int*)(temp+8));
+    }
+    printf("\n");
+}
 void *hw_malloc(size_t bytes)
 {
     void *allocated_chunk;
-    int power=(int)ceil(log(bytes+24)/log(2));
-    allocated_chunk=select_bin_chunk(power);
-    return (void*)((long int)allocated_chunk+24);
+    bytes+=24;	//header+data
+    if(bytes>32*1024) {
+        allocated_chunk=mmap(NULL,bytes,PROT_READ|PROT_WRITE,MAP_PRIVATE|MAP_ANONYMOUS,0,0);
+        if(allocated_chunk==(void*)-1)
+            printf("failed on mmap\n");
+        else
+            add_mmap_alloc_list(bytes,allocated_chunk);
+        show_mmap_list();
+        return allocated_chunk;
+    } else {
+        int power=(int)ceil(log(bytes)/log(2));
+        allocated_chunk=select_bin_chunk(power);
+        return (void*)((long int)allocated_chunk+24);	//return the address of data part
+    }
 }
-
 int hw_free(void *mem)
 {
     void *prev_chunk,*next_chunk;

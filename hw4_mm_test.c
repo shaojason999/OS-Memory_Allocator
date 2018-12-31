@@ -12,6 +12,12 @@ struct BIN {
     void *min;
     int length;
 }*bin[11];
+struct MMAP {	//seen as a chunk header
+    void *prev;
+    void *nxt;
+    int prev_size_and_alloc_flag;	//prev size is not used int mmap
+    int curr_size_and_mmap_flag;
+}*mmap_list;
 
 extern void* hw_malloc(size_t);
 extern int hw_free(void*);
@@ -41,13 +47,19 @@ void init()
     *(int*)(start_brk+32*1024+16)=(32*1024<<1)+0;	//31 bits for prev size(<<1) + 1 bit for allocated flag(0 for free)
     *(int*)(start_brk+32*1024+20)=(32*1024<<1)+0;	//31 bits for curr size(<<1) + 1 bit for mmap flag(0 for not mmap)
     bin[10]->length=2;
+
+    mmap_list=(struct MMAP*)malloc(sizeof(struct MMAP));
+    mmap_list->prev=mmap_list;
+    mmap_list->nxt=mmap_list;
+    mmap_list->prev_size_and_alloc_flag=0;	//don't care
+    mmap_list->curr_size_and_mmap_flag=0x7fffffff;	//set size to 2^30-1 to avoid infinite loop in add_mmap_alloc_list(), set flag to mmap	//note: the fist bit is a signed bit
 }
 
 int main(int argc, char *argv[])
 {
     start_brk=sbrk(64*1024);
+    printf("start_brk: %p\n",start_brk);
     init();
-//    printf("start_brk: %p\n",start_brk);
     int size,result;
     char input[10],bin_or_mmap[20];
     void *address;
@@ -69,7 +81,7 @@ int main(int argc, char *argv[])
         case 'f':
             if(scanf("%p",&address)!=1)
                 printf("failed on scanf\n");
-            address=(void*)((long int)address+(long int)start_brk-24);
+            address=(void*)((long int)address+(long int)start_brk-24);		//transfer from relative data part to actual header address
             if((*(int*)(address+20)&1)==0) {	//not mmap
                 result=hw_free(address);
                 if(result==1)
