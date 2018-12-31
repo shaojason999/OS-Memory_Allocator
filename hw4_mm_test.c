@@ -48,47 +48,77 @@ void init()
     *(int*)(start_brk+32*1024+20)=(32*1024<<1)+0;	//31 bits for curr size(<<1) + 1 bit for mmap flag(0 for not mmap)
     bin[10]->length=2;
 
+    /*mmap*/
     mmap_list=(struct MMAP*)malloc(sizeof(struct MMAP));
     mmap_list->prev=mmap_list;
     mmap_list->nxt=mmap_list;
     mmap_list->prev_size_and_alloc_flag=0;	//don't care
     mmap_list->curr_size_and_mmap_flag=0x7fffffff;	//set size to 2^30-1 to avoid infinite loop in add_mmap_alloc_list(), set flag to mmap	//note: the fist bit is a signed bit
 }
-
+void show_mmap_list()
+{
+    void *temp=mmap_list->nxt;
+    while(temp!=mmap_list) {
+        printf("%p--------%d\n",temp,(*(int*)(temp+20))>>1);
+        temp=(void*)(*(long int*)(temp+8));
+    }
+}
+int check_in_mmap_list(void *address)
+{
+    void *temp=mmap_list->nxt;
+    while(temp!=mmap_list) {
+        if(temp==address)
+            return 1;
+        temp=(void*)(*(long int*)(temp+8));
+    }
+    return 0;
+}
 int main(int argc, char *argv[])
 {
     start_brk=sbrk(64*1024);
-    printf("start_brk: %p\n",start_brk);
     init();
     int size,result;
     char input[10],bin_or_mmap[20];
     void *address;
-    int bin_num;
+    int bin_num,mmap;
     int i;
     while(1) {
         if(scanf("%s",input)!=1)
             printf("failed on scanf\n");
         switch(input[0]) {
+        default:
+            printf("wrong input\n");
         case 'a':
             if(scanf("%d",&size)!=1)
                 printf("failed on scanf\n");
             address=hw_malloc(size);
-            if(address!=NULL)
-                printf("%.12p\n",(void*)((long int)address-(long int)start_brk));
-            else
+            if(address!=NULL) {
+                if(size<=32*1024)
+                    printf("%.12p\n",(void*)((long int)address-(long int)start_brk));
+                else
+                    printf("%.12p\n",address);
+            } else
                 printf("not enough space\n");
             break;
         case 'f':
             if(scanf("%p",&address)!=1)
                 printf("failed on scanf\n");
-            address=(void*)((long int)address+(long int)start_brk-24);		//transfer from relative data part to actual header address
-            if((*(int*)(address+20)&1)==0) {	//not mmap
-                result=hw_free(address);
-                if(result==1)
-                    printf("success\n");
-                else
-                    printf("fail\n");
+            mmap=check_in_mmap_list(address-24);	//to see it is a mmap(actual address) or a heap(relative address)
+            if(mmap)
+                address=(void*)((long int)address-24);		//transfer from data address to header address
+            else {	//it may be a heap addreess or a wrong addreess
+                if(address>=0 && address<=(void*)(sbrk(0)-start_brk))
+                    address=(void*)((long int)address+(long int)start_brk-24);		//transfer from relative data part to actual header address
+                else {
+                    printf("not a usuable address, try again\n");
+                    continue;
+                }
             }
+            result=hw_free(address);
+            if(result==1)
+                printf("success\n");
+            else
+                printf("fail\n");
             break;
         case 'p':
             if(scanf("%s",bin_or_mmap)!=1)
@@ -100,16 +130,18 @@ int main(int argc, char *argv[])
                     bin_num=bin_or_mmap[4]-'0';
                 address=(void*)*(long int*)((void*)bin[bin_num]+8);
                 for(i=0; i<bin[bin_num]->length; ++i) {
-                    if((void*)(address-start_brk)==0)
+                    if((void*)(address-start_brk)==0)	//special print for address 0
                         printf("0x000000000000--------%d\n",(int)pow(2,bin_num+5));
                     else
                         printf("%.12p--------%d\n",(void*)(address-start_brk),(int)pow(2,bin_num+5));
                     address=(void*)(*(long int*)(address+8));
                 }
-            }
+            } else if(bin_or_mmap[0]=='m') {
+                show_mmap_list();
+            } else
+                printf("wrong input\n");
             break;
         }
-
     }
     return 0;
 }
