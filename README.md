@@ -12,7 +12,12 @@
 * 3,4合併為一個int，5,6合併為一個int(前31個bit是size部分，最後一個bit是flag)
 * 所以int=(size<<1)+flag bit
 
-## 程式說明
+## 執行指令
+1. $./hw4_mm_test
+2. cat testfile.txt|./hw4_mm_test>outputfile.txt  
+3. astyle --style=kr --indent=spaces=4 --suffix-none hw4_mm_test.c (used after programming)
+
+## 指令說明
 指令:  
 1. alloc N
     * N is the bytes
