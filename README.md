@@ -1,4 +1,4 @@
-# hw4-simple-memory-allocator-shaojason999
+# OS-Memory_Allocator
 
 ### chunk header結構
 1. prev chunk: long int(8-byte)
